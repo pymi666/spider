@@ -30,14 +30,18 @@ class DouBan():
         headers = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 11_0 like Mac OS X) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Mobile/15A372 Safari/604.1",
              "Referer": Referer}
         return headers
-
-    def url_pool(self):
+    def get_tv_num(self):
         url = "https://m.douban.com/rexxar/api/v2/subject_collection/%s/items?os=ios&for_mobile=1&start=%d&count=18&loc_id=108288"
         start = 0
         post_url = url%(self.cuntry_url,start)
         post_url_list = []
         r = requests.get(post_url, headers=self.headers())
         tv_num = r.json()["total"]
+        return tv_num,post_url_list,url
+    
+    def url_pool(self):
+        start = 0
+        tv_num,post_url_list,url = self.get_tv_num()
         while True:
             if (start+18) < tv_num:
                 post_url_list.append(url%(self.cuntry_url,start))
