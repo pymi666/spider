@@ -54,9 +54,9 @@ class DouBan():
         for url in url_list:
             r = requests.get(url, headers=self.headers())
             for title in r.json()["subject_collection_items"]:
-                  # 提取数据
+                  # 提取数据，将title加入列表
                 title_list.append(title["title"])
-        #保存数据:
+        #保存数据，不同国家分类对应电影名称列表
         title_dict = {self.country:title_list}
         return title_dict
 
