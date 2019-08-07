@@ -4,8 +4,11 @@ import requests
 import json
 from lxml import etree,html
 import re
+import pymysql
 class LianjiaXiaoqu:
     def __init__(self,jiedao_json):
+        self.db =pymysql.connect("localhost", "root", "123456", "lianjia")
+        self.cursor = self.db.cursor()
         self.jiedao_json = jiedao_json
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36"}
     def get_jiedao_url(self):
@@ -33,39 +36,34 @@ class LianjiaXiaoqu:
         jiancheng_year = html.fromstring(jiancheng_year).text
         #print (jiancheng_year)
         return jiancheng_year
-    def get_xiaoqu(self,html_str):
+    def save_sql(self,SQL):
+        self.cursor.execute(SQL)
+    def close_sql(self):
+        self.db.close()
+    def get_xiaoqu(self,html_str,jiedao,daqu):
         html = etree.HTML(html_str)
         daqu_list = html.xpath("//div[@class='leftContent']//li[@class='clear xiaoquListItem']")
-        content_xiaoqu=[]
         for a in daqu_list:
-            item = {}
+            item={}
             item["小区"]=a.xpath("./div[@class='info']/div[@class='title']/a/text()")[0]
             item["均价"]=a.xpath(".//div[@class='totalPrice']/span/text()")[0]
+            item["均价"] = 0 if item["均价"] == "暂无" else int(item["均价"])
             item["建筑时间"]  = self.get_jiancheng(a.xpath(".//div[@class='positionInfo']")[0])
-            item["出租"]=list(a.xpath(".//div[@class='houseInfo']/a[2]/text()")[0])[0]
-            item["挂牌"]=a.xpath(".//a[@class='totalSellCount']/span/text()")[0]
-            content_xiaoqu.append(item)
-        return content_xiaoqu
-    def save_xiaoqu(self,index,url,jiedao,jiedao_xiaoqu):
-        print ('*'+url+jiedao+'*')
-        xiaoqu=[]
-        jiedao_xiaoqu={}
+            item["建筑时间"]  = "" if item["建筑时间"] == "未知" else item["建筑时间"]
+            item["出租"]=int(list(a.xpath(".//div[@class='houseInfo']/a[2]/text()")[0])[0])
+            item["挂牌"]=int(a.xpath(".//a[@class='totalSellCount']/span/text()")[0])
+            SQL = "INSERT INTO xiaoqu (小区,均价,建设时间,出租数,挂牌数,街道,大区) VALUES ('%s',%d,'%s',%d,%d,'%s','%s')"%(item['小区'],item['均价'],item['建筑时间'],item['出租'],item['挂牌'],jiedao,daqu)
+            print (SQL)
+            self.save_sql(SQL)
+            print (item)
+    def for_xiaoqu(self,index,url,jiedao,daqu):
         for i in range(1,index+1):
             index_url = url+"pg"+str(i)
             html=self.parse_url(url) if i==1 else self.parse_url(index_url)
-            content_xiaoqu_list=self.get_xiaoqu(html)
-            #print (content_xiaoqu_list)
-            xiaoqu.append(content_xiaoqu_list)
-        #print ('*'*10)
-        #print (xiaoqu)
-
-        jiedao_xiaoqu[jiedao]=xiaoqu
-        print (jiedao_xiaoqu)
-        return jiedao_xiaoqu
+            self.get_xiaoqu(html,jiedao,daqu)
 
     def run(self):
         #获取每个街道url,
-        jiedao_xiaoqu={}
         for jiedao_list in self.get_jiedao_url():
             url = jiedao_list[0]
             jiedao = jiedao_list[1]
@@ -74,22 +72,12 @@ class LianjiaXiaoqu:
             #获取每个街道小区的翻页数
             html = self.parse_url(url)
             index = self.get_index_url(html)
-            xiaoqu_list = self.save_xiaoqu(index,url,jiedao,jiedao_xiaoqu)
-            #jiedao_xiaoqu = xiaoqu_list
+            self.for_xiaoqu(index,url,jiedao,daqu)
             #获取小区数据
-            qu_name = daqu+jiedao
-            with open("%s.json"%qu_name, "a", encoding="utf-8") as f:
-                f.write(json.dumps(xiaoqu_list,indent=4, ensure_ascii=False))
-        return jiedao_xiaoqu
-
-        #获取翻页数，制造翻页url
-        #获取第二页及每一页小区数据
-        #保存数据
-        pass
 
 if __name__=="__main__":
     with open("jiedao.json","rb") as f:
         jiedao_json = json.loads(f.read())
     lianjia_xiaoqu = LianjiaXiaoqu(jiedao_json)
-
-    print (lianjia_xiaoqu.run())
+    lianjia_xiaoqu.run()
+    lianjia_xiaoqu.close_sql()
