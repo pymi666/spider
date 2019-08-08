@@ -7,7 +7,7 @@ import re
 import pymysql
 class LianjiaXiaoqu:
     def __init__(self,jiedao_json):
-        self.db =pymysql.connect("localhost", "root", "123456", "lianjia")
+        self.db =pymysql.connect("localhost", "root", "12345677", "lianjia")
         self.cursor = self.db.cursor()
         self.jiedao_json = jiedao_json
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36"}
@@ -57,6 +57,7 @@ class LianjiaXiaoqu:
             self.save_sql(SQL)
             print (item)
     def for_xiaoqu(self,index,url,jiedao,daqu):
+
         for i in range(1,index+1):
             index_url = url+"pg"+str(i)
             html=self.parse_url(url) if i==1 else self.parse_url(index_url)
