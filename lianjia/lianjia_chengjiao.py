@@ -5,6 +5,7 @@ import time
 import requests
 from lxml import etree
 import json
+from retrying import retry
 class LianjiaChengjiao:
     def __init__(self):
         self.db =pymysql.connect("localhost", "root", "123456", "lianjia")
@@ -12,16 +13,26 @@ class LianjiaChengjiao:
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36"}
     def get_xiaoqu_list(self):
 
-        requery_sql = "select 小区,街道,大区 from xiaoqu"
+        requery_sql = "select 小区,街道,大区 from xiaoqu2"
         cursor = self.db.cursor()
         cursor.execute(requery_sql)
         xiaoqu_list = cursor.fetchall()
         cursor.close()
         print (xiaoqu_list)
         return xiaoqu_list
-    def parse_url(self,url):
+
+    @retry(stop_max_attempt_number=3)
+    def _parse_url(self,url):
         res = requests.get(url,headers = self.headers)
         return res.content.decode()
+
+    def parse_url(self,url):
+        try:
+            html_str = self._parse_url(url)
+        except:
+            html_str = None
+
+        return html_str
     #一个小区的所有成交房子的详情url
     def get_xiaoqu_detail_url(self,html,xiaoqu,jiedao,daqu):
         html_str = etree.HTML(html)
@@ -36,18 +47,20 @@ class LianjiaChengjiao:
                 index_url = "https://wh.lianjia.com/chengjiao/"+"pg"+str(i)+"rs"+xiaoqu
                 print (index_url)
                 html=self.parse_url(self.xiaoqu_url%(xiaoqu)) if i==1 else self.parse_url(index_url)
-                html_str = etree.HTML(html)
-                xiaoqu_detail_url = html_str.xpath("//ul[@class='listContent']/li/div[@class='info']/div[@class='title']/a/@href")
-                alone_xiaoqu_url_list[1].extend(xiaoqu_detail_url)
-            #print (alone_xiaoqu_url_list)
-            #print (len(alone_xiaoqu_url_list))
-            #[[xiaoqu,jiedao,xiaoqu],[url1,url2]]
+                if html:
+                    html_str = etree.HTML(html)
+                    xiaoqu_detail_url = html_str.xpath("//ul[@class='listContent']/li/div[@class='info']/div[@class='title']/a/@href")
+                    alone_xiaoqu_url_list[1].extend(xiaoqu_detail_url)
+                #print (alone_xiaoqu_url_list)
+                #print (len(alone_xiaoqu_url_list))
+                #[[xiaoqu,jiedao,xiaoqu],[url1,url2]]
+                else:
+                    alone_xiaoqu_url_list = [[xiaoqu, jiedao, daqu], []]
         else:
             alone_xiaoqu_url_list = [[xiaoqu, jiedao, daqu], []]
         return alone_xiaoqu_url_list
     #针对一个房子的url，提取信息信息
-    def get_xiaoqu_detail(self,xiaoqu_url,xiaoqu_name,jiedao,daqu):
-        html = self.parse_url(xiaoqu_url)
+    def get_xiaoqu_detail(self,html,xiaoqu_name,jiedao,daqu):
         html_str = etree.HTML(html)
         xiaoqu = xiaoqu_name
 
@@ -121,13 +134,16 @@ class LianjiaChengjiao:
             daqu = xiaoqu[2]
             #提取小区成交套数，和翻页数
             html = self.parse_url(xiaoqu_url)
-            alone_xiaoqu_url_list=self.get_xiaoqu_detail_url(html,xiaoqu_name,jiedao,daqu)
+            if html:
+                alone_xiaoqu_url_list=self.get_xiaoqu_detail_url(html,xiaoqu_name,jiedao,daqu)
             #获取每个翻页的小区数据
-            if alone_xiaoqu_url_list[1]:
-                for url in alone_xiaoqu_url_list[1]:
-                    print (url)
-                    add_sql=self.get_xiaoqu_detail(url,xiaoqu_name,jiedao,daqu)
-                    self.save_data(add_sql)
+                if alone_xiaoqu_url_list[1]:
+                    for url in alone_xiaoqu_url_list[1]:
+                        print (url)
+                        html = self.parse_url(url)
+                        if html:
+                            add_sql=self.get_xiaoqu_detail(html,xiaoqu_name,jiedao,daqu)
+                            self.save_data(add_sql)
         self.commit_data()
         #写入数据库
         #关闭数据库
