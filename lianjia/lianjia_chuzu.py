@@ -45,7 +45,8 @@ class LianjiaChuzu:
             index=0
         return index
     #每个小区页面数据
-    def get_data(self,html,xiaoqu,jiedao,daqu):
+    @retry(stop_max_attempt_number=3)
+    def _get_data(self,html,xiaoqu,jiedao,daqu):
         html_str=etree.HTML(html)
         xiaoqu_chuzu_base=html_str.xpath("//div[@class='content__list']/div[@class='content__list--item']")
         for li in xiaoqu_chuzu_base:
@@ -61,9 +62,16 @@ class LianjiaChuzu:
             #print(mianji,chaoxiang,huxing,fabushijian,chuzu_jiage)
             SQL = "INSERT INTO lianjia_chuzu_ing (小区,出租类型,面积,朝向,户型,发布时间,租金,街道,大区) VALUES " \
                   "('{}','{}','{}','{}','{}','{}','{}','{}','{}')".format(xiaoqu,self.zufangleixing,mianji,chaoxiang,huxing,fabushijian,chuzu_jiage,jiedao,daqu)
+            print (SQL)
             cursor = self.db.cursor()
             cursor.execute(SQL)
             cursor.close()
+    def get_data(self,html,xiaoqu,jiedao,daqu):
+        try:
+            self._get_data(html,xiaoqu,jiedao,daqu)
+        except:
+            pass
+
     def commit_data(self):
         self.db.commit()
         self.db.close()
@@ -88,7 +96,7 @@ class LianjiaChuzu:
                         print(index_url)
                         html = self.parse_url(xiaoqu_url) if i == 1 else self.parse_url(index_url)
                         if html:
-                            self.get_data(html,xiaoqu_name,jiedao,daqu)
+                            self._get_data(html,xiaoqu_name,jiedao,daqu)
         self.commit_data()
 
         #获取每个小区挂牌出租信息
