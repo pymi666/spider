@@ -142,15 +142,16 @@ class LianjiaChengjiao:
                         print (url)
                         html = self.parse_url(url)
                         if html:
-                            add_sql=self.get_xiaoqu_detail(html,xiaoqu_name,jiedao,daqu)
-                            self.save_data(add_sql)
+                            try:
+                                add_sql=self.get_xiaoqu_detail(html,xiaoqu_name,jiedao,daqu)
+                                self.save_data(add_sql)
+                            except:
+                                pass
         self.commit_data()
         #写入数据库
         #关闭数据库
         pass
 if __name__=='__main__':
     lianjia_chengjiao = LianjiaChengjiao()
-    try:
-        lianjia_chengjiao.run()
-    except:
-        pass
+    lianjia_chengjiao.run()
+
