@@ -13,7 +13,7 @@ class LianjiaChengjiao:
         self.headers = {"User-Agent": "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.96 Safari/537.36"}
     def get_xiaoqu_list(self):
 
-        requery_sql = "select 小区,街道,大区 from xiaoqu2"
+        requery_sql = "select 小区,街道,大区 from xiaoqu"
         cursor = self.db.cursor()
         cursor.execute(requery_sql)
         xiaoqu_list = cursor.fetchall()
@@ -150,7 +150,6 @@ class LianjiaChengjiao:
         self.commit_data()
         #写入数据库
         #关闭数据库
-        pass
 if __name__=='__main__':
     lianjia_chengjiao = LianjiaChengjiao()
     lianjia_chengjiao.run()
