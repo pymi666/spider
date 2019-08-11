@@ -53,10 +53,24 @@ class LianjiaChuzu:
             xiaoqu_name=xiaoqu
             jiedao=jiedao
             daqu=daqu
-            detail = li.xpath(".//p[@class='content__list--item--des']/text()")
-            mianji = detail[4].strip().split("㎡")[0]
-            chaoxiang=detail[5].strip()
-            huxing=detail[6].strip().split()[0]
+            try :
+                detail = li.xpath(".//p[@class='content__list--item--des']/text()")
+            except:
+                detail = ''
+            try:
+                mianji = detail[4].strip().split("㎡")[0] if len(detail)>=5 else ''
+            except:
+                mianji = ''
+            try:
+                chaoxiang=detail[5].strip() if len(detail)>=6 else ''
+            except:
+                chaoxiang = ''
+            try:
+                huxing=detail[6].strip().split()[0] if len(detail)>=7 else ''
+            except:
+                huxing = ''
+
+
             fabushijian=li.xpath(".//p[@class='content__list--item--time oneline']/text()")[0]
             chuzu_jiage=li.xpath(".//span[@class='content__list--item-price']/em/text()")[0]
             #print(mianji,chaoxiang,huxing,fabushijian,chuzu_jiage)

@@ -150,4 +150,7 @@ class LianjiaChengjiao:
         pass
 if __name__=='__main__':
     lianjia_chengjiao = LianjiaChengjiao()
-    lianjia_chengjiao.run()
+    try:
+        lianjia_chengjiao.run()
+    except:
+        pass
