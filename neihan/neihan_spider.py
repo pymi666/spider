@@ -29,7 +29,7 @@ class Neihan:
     def save_content_list(self,content_list):
         with open("neihan.txt","a",encoding="utf-8") as f:
             for content in content_list:
-                f.write(json.dump(content,ensure_ascii=False,))
+                f.write(json.dump(content,ensure_ascii=False,indent=4))
                 f.write("\n")
         print ("保存成功")
 
